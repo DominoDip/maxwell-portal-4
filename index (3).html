@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Maxwell Sterling · Family Mortgage Portal</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #0d1b2a; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 2px; }
+
+/* HEADER */
+#header { padding: 12px 16px; background: linear-gradient(135deg,#162234,#1e2f45); border-bottom: 1px solid rgba(201,168,76,0.25); flex-shrink: 0; }
+#header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+#avatar { width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#8a6520);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0; }
+#header-name { font-size:15px;color:#f5f0e8;font-weight:700; }
+#header-sub { font-size:11px;color:#8892a0; }
+#online { margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;color:#6ee7b7; }
+#online-dot { width:7px;height:7px;border-radius:50%;background:#6ee7b7;animation:pulse 2s infinite; }
+#tabs { display:flex;gap:6px; }
+.tab-btn { background:transparent;border:1px solid rgba(201,168,76,0.2);color:#6b7a8d;font-size:12px;padding:5px 14px;border-radius:16px;cursor:pointer;font-family:inherit;font-weight:400; }
+.tab-btn.active { background:rgba(201,168,76,0.2);border-color:rgba(201,168,76,0.5);color:#c9a84c;font-weight:600; }
+
+/* CHAT */
+#chat-area { flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;background:#f5f0e8; }
+.msg-row { display:flex;gap:8px; }
+.msg-row.user { flex-direction:row-reverse;align-self:flex-end;max-width:92%; }
+.msg-row.assistant { align-self:flex-start;max-width:92%; }
+.msg-av { width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700; }
+.msg-av.assistant { background:linear-gradient(135deg,#c9a84c,#8a6520); }
+.msg-av.user { background:#1e2f45;color:#f5f0e8;font-size:10px;border:1px solid rgba(201,168,76,0.3); }
+.bubble { padding:10px 14px;font-size:13px;line-height:1.75;box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.bubble.assistant { background:#fff;color:#1a1a2e;border-radius:4px 14px 14px 14px; }
+.bubble.user { background:#e8dfc8;color:#1a1a2e;border:1px solid #c9b97a;border-radius:14px 4px 14px 14px;font-weight:500; }
+#typing { display:flex;gap:8px;align-items:center; }
+#typing-dots { background:#fff;padding:10px 16px;border-radius:4px 14px 14px 14px;display:flex;gap:4px;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.dot { width:6px;height:6px;background:#c9a84c;border-radius:50%; }
+.dot:nth-child(1){animation:bounce 1.2s 0s infinite}
+.dot:nth-child(2){animation:bounce 1.2s 0.2s infinite}
+.dot:nth-child(3){animation:bounce 1.2s 0.4s infinite}
+
+/* CHIPS */
+#chips-area { display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 4px;background:#f5f0e8;flex-shrink:0; }
+.chip { background:#e8dfc8;border:1px solid #b8a060;color:#3a2e10;font-size:12px;padding:7px 14px;border-radius:18px;cursor:pointer;font-family:inherit;font-weight:600; }
+.chip:hover { background:#ddd0b0; }
+
+/* INPUT */
+#input-area { padding:10px 14px;border-top:1px solid rgba(201,168,76,0.2);background:rgba(13,27,42,0.98);display:flex;gap:8px;align-items:flex-end;flex-shrink:0; }
+#user-input { flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:10px 14px;color:#f5f0e8;font-family:inherit;font-size:13px;resize:none;outline:none;line-height:1.5;min-height:42px;max-height:90px; }
+#user-input::placeholder { color:rgba(245,240,232,0.3); }
+#send-btn { width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#c9a84c,#8a6520);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+#send-btn:disabled { opacity:0.35;cursor:not-allowed; }
+
+/* PROFILE TAB */
+#profile-area { flex:1;overflow-y:auto;padding:16px;background:#f5f0e8; }
+.profile-inner { max-width:580px;margin:0 auto; }
+.callout { background:#fff8e8;border:1px solid #e8c060;border-radius:12px;padding:16px;margin-bottom:14px; }
+.callout-title { font-size:13px;font-weight:700;color:#8a6520;margin-bottom:8px; }
+.callout-body { font-size:12px;color:#5a4a20;line-height:1.8; }
+.card { background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:14px; }
+.card-title { font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:12px; }
+.profile-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+.profile-cell { background:#f8f5ee;border:1px solid #d4c090;border-radius:8px;padding:8px 12px; }
+.profile-cell-label { font-size:9px;text-transform:uppercase;letter-spacing:0.7px;color:#8892a0;margin-bottom:3px; }
+.profile-cell-value { font-size:12px;color:#1a1a2e;font-weight:500;line-height:1.4; }
+.suggest-btn { display:block;width:100%;text-align:left;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;font-family:inherit;font-size:12px;color:#3a2e10;line-height:1.5; }
+.suggest-btn:hover { background:rgba(201,168,76,0.12); }
+
+#disclaimer { font-size:9px;color:rgba(245,240,232,0.2);text-align:center;padding:3px 14px 5px;background:rgba(13,27,42,0.98);flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="header-top">
+    <div id="avatar">🎩</div>
+    <div>
+      <div id="header-name">Maxwell Sterling</div>
+      <div id="header-sub">Family Home Purchase Portal · Seller's Guide</div>
+    </div>
+    <div id="online"><div id="online-dot"></div> Online</div>
+  </div>
+  <div id="tabs">
+    <button class="tab-btn active" onclick="showTab('chat')">💬 Ask Maxwell</button>
+    <button class="tab-btn" onclick="showTab('profile')">👤 Buyer Profile</button>
+  </div>
+</div>
+
+<div id="chat-tab">
+  <div id="chat-area"></div>
+  <div id="chips-area"></div>
+  <div id="input-area">
+    <textarea id="user-input" placeholder="Ask Maxwell anything about the buyer or this family sale..." rows="1"></textarea>
+    <button id="send-btn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="profile-tab" style="display:none;flex:1;overflow-y:auto;">
+  <div id="profile-area">
+    <div class="profile-inner">
+      <div class="callout">
+        <div class="callout-title">⚡ Key Facts About This Transaction</div>
+        <div class="callout-body">
+          <strong>Type:</strong> Non-Arm's-Length Family Sale (Siblings)<br/>
+          <strong>FHA Exception:</strong> Buyer has lived here 2.5 years — qualifies for 3.5% down (not the usual 15%)<br/>
+          <strong>Gift of Equity:</strong> You can sell below market value — the difference becomes the buyer's down payment<br/>
+          <strong>Appraisal:</strong> Lender will order a full independent appraisal regardless of agreed price<br/>
+          <strong>Divorce:</strong> Should be finalized before or during the mortgage process
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Buyer's Financial Profile</div>
+        <div class="profile-grid" id="profile-grid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">💡 Questions to Ask Maxwell</div>
+        <div id="suggest-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="disclaimer">Educational guidance only — not official financial, legal, or tax advice.</div>
+
+<script>
+const API_KEY = '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';
+
+const PROFILE = {
+  'Marital Status': "Separated for 3+ years, living separately. Divorce not yet finalized. Buying solo.",
+  'Annual Income': "$100k–$150k annual W-2 income. Age 62 — delaying Social Security until 65. No additional income.",
+  'Monthly Debts': "Over $1,200/month. Medical debt for himself and estranged spouse. No student loans, no late payments or judgments.",
+  'Savings & Assets': "Under $5k liquid savings. Limited due to years of medical bills and supporting sons through college.",
+  'Credit Score': "Fair 580–669. Negative marks are medical bills only — no late payments, judgments, or liens.",
+  'Employment': "W-2 employee, 2+ years at current job. Stable employment history.",
+  'Property Goal': "Purchasing the single-family home he currently lives in from his sister. Has lived there 2.5 years while sister paid mortgage.",
+  'Home History': "Has owned before and sold. Currently occupying sister's home for 2.5 years.",
+  'Timeline': "3–6 months. Driven by need to relieve sister of mortgage payments she has covered for 2.5 years.",
+  'Key Concerns': "Credit score (Fair 580–669) and very limited savings (under $5k).",
+  'Relationship to Seller': "Sister (Sibling)",
+  'Transaction Type': "Non-Arm's-Length / Family Sale — Buyer has lived in property 2.5 years"
+};
+
+const SUGGESTED = [
+  "Can my sibling qualify for a mortgage with their current finances?",
+  "What is a gift of equity and how does it work?",
+  "What is the FHA Identity of Interest exception?",
+  "What documents do I need to provide as the seller?",
+  "How does the appraisal affect our agreed sale price?",
+  "Are there tax implications for selling below market value?",
+  "What loan types work best for this family sale?",
+  "What should we do about the divorce before closing?",
+  "How long will this process take?",
+  "What happens if I still have a mortgage on the home?"
+];
+
+const SYSTEM = `You are Maxwell Sterling, a warm and experienced mortgage advisor AI. You are speaking with the SELLER — the buyer's sister — who wants to understand the buyer's financial picture and what to expect when selling her home to her sibling.
+
+Buyer's complete financial profile:
+${Object.entries({
+  'Marital Status': "Separated for 3+ years, living separately. Divorce not yet finalized. Buying solo.",
+  'Annual Income': "$100k–$150k annual W-2 income. Age 62 — delaying Social Security until 65. No additional income.",
+  'Monthly Debts': "Over $1,200/month. Medical debt for himself and estranged spouse. No student loans, no late payments or judgments.",
+  'Savings & Assets': "Under $5k liquid savings. Limited due to years of medical bills and supporting sons through college.",
+  'Credit Score': "Fair 580–669. Negative marks are medical bills only — no late payments, judgments, or liens.",
+  'Employment': "W-2 employee, 2+ years at current job. Stable employment history.",
+  'Property Goal': "Purchasing the single-family home he currently lives in from his sister. Has lived there 2.5 years while sister paid mortgage.",
+  'Home History': "Has owned before and sold. Currently occupying sister's home for 2.5 years.",
+  'Timeline': "3–6 months.",
+  'Key Concerns': "Credit score and very limited savings."
+}).map(([k,v]) => `- ${k}: ${v}`).join('\n')}
+
+CRITICAL FACTS TO KNOW:
+1. FHA IDENTITY OF INTEREST EXCEPTION: Buyer has lived in property 2.5 YEARS. Normally family sales require 15% down on FHA loans, BUT since buyer has been a tenant for over 12 months, standard 3.5% down applies. HUGE advantage.
+2. GIFT OF EQUITY: Seller can sell below market value — difference counts as buyer's down payment. Can eliminate need for cash down entirely.
+3. DIVORCE: Not yet finalized. Medical debt in both names. Recommend finalizing before or during mortgage process. Consult family law attorney about debt allocation.
+4. CREDIT: Fair 580-669 from medical bills only — not irresponsible behavior. Qualifies for FHA at 580+.
+5. EXTRA DOCS FROM SELLER: Gift of equity letter, relationship letter, title/deed, mortgage payoff statement, property disclosures.
+
+Be warm, clear, practical. Use plain language. Bold key terms. Always recommend licensed professionals for legal/tax specifics.`;
+
+let messages = [];
+let loading = false;
+
+function fmt(t) {
+  return t
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, '<br/>');
+}
+
+function scrollBottom() {
+  const c = document.getElementById('chat-area');
+  c.scrollTop = c.scrollHeight;
+}
+
+function addMessage(role, text) {
+  const area = document.getElementById('chat-area');
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + role;
+  const av = document.createElement('div');
+  av.className = 'msg-av ' + role;
+  av.textContent = role === 'assistant' ? '🎩' : 'You';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble ' + role;
+  bubble.innerHTML = fmt(text);
+  row.appendChild(av);
+  row.appendChild(bubble);
+  area.appendChild(row);
+  scrollBottom();
+}
+
+function showTyping() {
+  const area = document.getElementById('chat-area');
+  const t = document.createElement('div');
+  t.id = 'typing-indicator';
+  t.className = 'msg-row assistant';
+  t.innerHTML = '<div class="msg-av assistant">🎩</div><div id="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  area.appendChild(t);
+  scrollBottom();
+}
+
+function hideTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+function showChips(chips) {
+  const area = document.getElementById('chips-area');
+  area.innerHTML = '';
+  chips.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = c;
+    btn.onclick = () => { area.innerHTML = ''; sendMessage(c); };
+    area.appendChild(btn);
+  });
+}
+
+async function sendMessage(text) {
+  if (loading) return;
+  const input = document.getElementById('user-input');
+  const msg = text || input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('chips-area').innerHTML = '';
+  addMessage('user', msg);
+  messages.push({ role: 'user', content: msg });
+  loading = true;
+  document.getElementById('send-btn').disabled = true;
+  showTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: messages
+      })
+    });
+    const data = await res.json();
+    if (data.error) {
+      hideTyping();
+      addMessage('assistant', 'API Error: ' + data.error.message);
+      loading = false;
+      document.getElementById('send-btn').disabled = false;
+      return;
+    }
+    const reply = data.content?.[0]?.text || 'Sorry, please try again.';
+    hideTyping();
+    messages.push({ role: 'assistant', content: reply });
+    addMessage('assistant', reply);
+  } catch(e) {
+    hideTyping();
+    addMessage('assistant', 'Brief connection issue — please try again.');
+    console.error('Full error:', e);
+  }
+
+  loading = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+function showTab(tab) {
+  document.getElementById('chat-tab').style.display = tab === 'chat' ? 'flex' : 'none';
+  document.getElementById('chat-tab').style.flexDirection = 'column';
+  document.getElementById('chat-tab').style.flex = tab === 'chat' ? '1' : 'none';
+  document.getElementById('chat-tab').style.overflow = tab === 'chat' ? 'hidden' : 'none';
+  document.getElementById('profile-tab').style.display = tab === 'profile' ? 'flex' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&tab==='chat')||(i===1&&tab==='profile'));
+  });
+}
+
+// Build profile grid
+const grid = document.getElementById('profile-grid');
+Object.entries(PROFILE).forEach(([k,v]) => {
+  const cell = document.createElement('div');
+  cell.className = 'profile-cell';
+  cell.innerHTML = `<div class="profile-cell-label">${k}</div><div class="profile-cell-value">${v}</div>`;
+  grid.appendChild(cell);
+});
+
+// Build suggest list
+const suggestList = document.getElementById('suggest-list');
+SUGGESTED.forEach(q => {
+  const btn = document.createElement('button');
+  btn.className = 'suggest-btn';
+  btn.textContent = '→ ' + q;
+  btn.onclick = () => { showTab('chat'); setTimeout(() => sendMessage(q), 100); };
+  suggestList.appendChild(btn);
+});
+
+// Init chat
+document.getElementById('chat-tab').style.display = 'flex';
+document.getElementById('chat-tab').style.flexDirection = 'column';
+document.getElementById('chat-tab').style.flex = '1';
+document.getElementById('chat-tab').style.overflow = 'hidden';
+
+addMessage('assistant', "Hello! I'm **Maxwell Sterling**, a mortgage advisor AI.\n\nI've been loaded with your family member's complete financial profile. Ask me anything — about their ability to qualify, what to expect as the seller, how a family sale works, and the important **gift of equity** and **FHA exception** opportunities that apply to this specific situation.\n\nTap a question below or type your own!");
+
+showChips(SUGGESTED.slice(0,5));
+
+// Textarea auto-resize
+document.getElementById('user-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 90) + 'px';
+});
+
+document.getElementById('user-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+</script>
+</body>
+</html>
