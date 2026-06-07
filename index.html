@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Maxwell Sterling · Family Mortgage Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0d1b2a; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 2px; }
+  textarea::placeholder { color: rgba(245,240,232,0.3); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const CLIENT_PROFILE = {
+  marital_status: "Separated for 3+ years, living separately. Divorce not yet finalized. Buying solo.",
+  household_income: "$100k–$150k annual W-2 income. No additional income. Age 62 — delaying Social Security until 65.",
+  monthly_debts: "Over $1,200/month. Includes medical debt for himself and estranged spouse. No student loans, no late payments, no tax liens or judgments.",
+  savings: "Under $5k in liquid savings. No restrictions on access. Limited due to years of medical bills and supporting sons through college.",
+  credit_score: "Fair 580–669. Negative marks are medical bills only — no late payments, judgments, or liens.",
+  employment: "W-2 employee, 2+ years at current job. Stable employment history.",
+  property_goal: "Purchasing the single-family home he currently lives in from his sister. Has lived in the home for 2.5 years while sister paid the mortgage.",
+  homeownership_history: "Has owned before and sold. Currently occupying sister's home for 2.5 years.",
+  timeline: "3–6 months. Driven by need to relieve sister of mortgage payments she has been covering for 2.5 years.",
+  concerns: "Primary concerns: credit score (Fair 580–669) and very limited savings (under $5k).",
+  relationship_to_seller: "Sister (Sibling)",
+  sale_type: "Non-Arm's-Length / Family Sale — Buyer has lived in property 2.5 years",
+};
+
+const PROFILE_LABELS = {
+  marital_status: "Marital Status", household_income: "Annual Income",
+  monthly_debts: "Monthly Debts", savings: "Savings & Assets",
+  credit_score: "Credit Score", employment: "Employment",
+  property_goal: "Property Goal", homeownership_history: "Home History",
+  timeline: "Timeline", concerns: "Key Concerns",
+  relationship_to_seller: "Relationship to Seller", sale_type: "Transaction Type",
+};
+
+const SYSTEM_PROMPT = `You are Maxwell Sterling, a warm and experienced mortgage advisor AI. You are speaking with the SELLER — the buyer's sister — who wants to understand the buyer's financial picture and what to expect when selling her home to her sibling.
+
+The buyer's complete financial profile:
+${Object.entries(CLIENT_PROFILE).map(([k,v]) => `- ${PROFILE_LABELS[k]||k}: ${v}`).join('\n')}
+
+CRITICAL FACTS:
+1. FHA IDENTITY OF INTEREST EXCEPTION: Buyer has lived in the property for 2.5 YEARS. FHA normally requires 15% down for family sales, BUT since buyer has been a tenant for over 12 months, the standard 3.5% down payment applies. This is a MAJOR advantage.
+2. GIFT OF EQUITY: Seller can sell below market value — the difference counts as buyer's down payment. This can eliminate the need for cash down entirely.
+3. SEPARATION/DIVORCE: Buyer has been separated 3+ years, divorce not finalized. Recommend finalizing divorce before or during mortgage process. Medical debt in both names — allocation depends on divorce decree.
+4. CREDIT: Fair 580–669, hurt only by medical bills — not irresponsible behavior. Qualifies for FHA at 580+.
+5. APPRAISAL: Lender will order independent appraisal regardless of agreed sale price.
+6. EXTRA DOCS NEEDED FROM SELLER: Gift of equity letter, relationship explanation letter, title/deed, mortgage payoff statement, property disclosures.
+
+Be warm, clear, and practical. Use plain language. Bold key terms. Always recommend licensed professionals for legal and tax specifics.`;
+
+const SUGGESTED = [
+  "Can my sibling qualify for a mortgage with their current finances?",
+  "What is a gift of equity and how does it work?",
+  "What is the FHA Identity of Interest exception?",
+  "What documents do I need to provide as the seller?",
+  "How does the appraisal affect our agreed sale price?",
+  "Are there tax implications for selling below market value?",
+  "What loan types work best for this family sale?",
+  "What should we do about the divorce before closing?",
+  "How long will this process take?",
+  "What happens if I still have a mortgage on the home?",
+];
+
+function fmt(t) {
+  return t
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, '<br/>');
+}
+
+function App() {
+  const [messages, setMessages] = React.useState([{
+    role: 'assistant',
+    text: "Hello! I'm **Maxwell Sterling**, a mortgage advisor AI.\n\nI've been loaded with your family member's complete financial profile. Ask me anything — about their ability to qualify, what to expect as the seller, how a family sale works, and the important **gift of equity** opportunity that could make this much easier.\n\nTap a question below or type your own!"
+  }]);
+  const [input, setInput] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [tab, setTab] = React.useState('chat');
+  const chatRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [messages, loading]);
+
+  async function send(text) {
+    if (!text.trim() || loading) return;
+    setInput('');
+    const updated = [...messages, { role: 'user', text }];
+    setMessages(updated);
+    setLoading(true);
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: SYSTEM_PROMPT,
+          messages: updated.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text.replace(/<[^>]+>/g, '') })),
+        }),
+      });
+      const data = await res.json();
+      setMessages(m => [...m, { role: 'assistant', text: data.content?.[0]?.text || 'Sorry, please try again.' }]);
+    } catch {
+      setMessages(m => [...m, { role: 'assistant', text: 'Brief connection issue — please try again.' }]);
+    }
+    setLoading(false);
+  }
+
+  const gold = '#c9a84c', navy = '#0d1b2a', cream = '#f5f0e8';
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:navy,overflow:'hidden'}}>
+
+      {/* HEADER */}
+      <div style={{padding:'12px 16px',background:'linear-gradient(135deg,#162234,#1e2f45)',borderBottom:'1px solid rgba(201,168,76,0.25)',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+          <div style={{width:40,height:40,borderRadius:'50%',background:'linear-gradient(135deg,#c9a84c,#8a6520)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19,flexShrink:0}}>🎩</div>
+          <div>
+            <div style={{fontSize:15,color:cream,fontWeight:700}}>Maxwell Sterling</div>
+            <div style={{fontSize:11,color:'#8892a0'}}>Family Home Purchase Portal · Seller's Guide</div>
+          </div>
+          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#6ee7b7'}}>
+            <div style={{width:7,height:7,borderRadius:'50%',background:'#6ee7b7',animation:'pulse 2s infinite'}}/>
+            Online
+          </div>
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          {[['chat','💬 Ask Maxwell'],['profile','👤 Buyer Profile']].map(([t,l]) => (
+            <button key={t} onClick={()=>setTab(t)} style={{background:tab===t?'rgba(201,168,76,0.2)':'transparent',border:`1px solid ${tab===t?'rgba(201,168,76,0.5)':'rgba(201,168,76,0.2)'}`,color:tab===t?gold:'#6b7a8d',fontSize:12,padding:'5px 14px',borderRadius:16,cursor:'pointer',fontFamily:'inherit',fontWeight:tab===t?600:400}}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* PROFILE TAB */}
+      {tab === 'profile' && (
+        <div style={{flex:1,overflowY:'auto',padding:16,background:cream}}>
+          <div style={{maxWidth:580,margin:'0 auto'}}>
+            <div style={{background:'#fff8e8',border:'1px solid #e8c060',borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#8a6520',marginBottom:8}}>⚡ Key Facts About This Transaction</div>
+              <div style={{fontSize:12,color:'#5a4a20',lineHeight:1.8}}>
+                <strong>Type:</strong> Non-Arm's-Length Family Sale (Siblings)<br/>
+                <strong>FHA Exception:</strong> Buyer has lived here 2.5 years — qualifies for 3.5% down (not 15%)<br/>
+                <strong>Gift of Equity:</strong> You can sell below market — difference becomes buyer's down payment<br/>
+                <strong>Appraisal:</strong> Lender will order a full independent appraisal<br/>
+                <strong>Divorce:</strong> Should be finalized before or during the mortgage process
+              </div>
+            </div>
+            <div style={{background:'#fff',borderRadius:12,padding:16,boxShadow:'0 2px 12px rgba(0,0,0,0.07)',marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#1a1a2e',marginBottom:12}}>Buyer's Financial Profile</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                {Object.entries(CLIENT_PROFILE).map(([k,v]) => (
+                  <div key={k} style={{background:'#f8f5ee',border:'1px solid #d4c090',borderRadius:8,padding:'8px 12px'}}>
+                    <div style={{fontSize:9,textTransform:'uppercase',letterSpacing:'0.7px',color:'#8892a0',marginBottom:3}}>{PROFILE_LABELS[k]||k}</div>
+                    <div style={{fontSize:12,color:'#1a1a2e',fontWeight:500,lineHeight:1.4}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{background:'#fff',borderRadius:12,padding:16,boxShadow:'0 2px 12px rgba(0,0,0,0.07)'}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#1a1a2e',marginBottom:10}}>💡 Questions to Ask Maxwell</div>
+              {SUGGESTED.map((q,i) => (
+                <button key={i} onClick={()=>{setTab('chat');setTimeout(()=>send(q),100);}} style={{display:'block',width:'100%',textAlign:'left',background:'rgba(201,168,76,0.06)',border:'1px solid rgba(201,168,76,0.2)',borderRadius:8,padding:'8px 12px',marginBottom:6,cursor:'pointer',fontFamily:'inherit',fontSize:12,color:'#3a2e10',lineHeight:1.5}}>
+                  → {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHAT TAB */}
+      {tab === 'chat' && (
+        <>
+          <div ref={chatRef} style={{flex:1,overflowY:'auto',padding:16,display:'flex',flexDirection:'column',gap:14,background:cream}}>
+            {messages.map((m,i) => (
+              <div key={i} style={{display:'flex',gap:8,flexDirection:m.role==='user'?'row-reverse':'row',alignSelf:m.role==='user'?'flex-end':'flex-start',maxWidth:'92%'}}>
+                <div style={{width:28,height:28,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:m.role==='assistant'?13:10,fontWeight:700,background:m.role==='assistant'?'linear-gradient(135deg,#c9a84c,#8a6520)':'#1e2f45',color:m.role==='user'?cream:'unset',border:m.role==='user'?'1px solid rgba(201,168,76,0.3)':'none'}}>
+                  {m.role==='assistant'?'🎩':'You'}
+                </div>
+                <div style={{padding:'10px 14px',fontSize:13,lineHeight:1.75,borderRadius:m.role==='assistant'?'4px 14px 14px 14px':'14px 4px 14px 14px',background:m.role==='assistant'?'#fff':'#e8dfc8',color:'#1a1a2e',boxShadow:'0 2px 8px rgba(0,0,0,0.07)',border:m.role==='user'?'1px solid #c9b97a':'none',fontWeight:m.role==='user'?500:400}}
+                  dangerouslySetInnerHTML={{__html:fmt(m.text)}}/>
+              </div>
+            ))}
+            {loading && (
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#c9a84c,#8a6520)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>🎩</div>
+                <div style={{background:'#fff',padding:'10px 16px',borderRadius:'4px 14px 14px 14px',display:'flex',gap:4,alignItems:'center',boxShadow:'0 2px 8px rgba(0,0,0,0.07)'}}>
+                  {[0,0.2,0.4].map((d,i)=>(
+                    <div key={i} style={{width:6,height:6,background:gold,borderRadius:'50%',animation:`bounce 1.2s ${d}s infinite`}}/>
+                  ))}
+                </div>
+              </div>
+            )}
+            {messages.length <= 1 && !loading && (
+              <div style={{marginTop:8}}>
+                <div style={{fontSize:11,color:'#8892a0',marginBottom:8,textAlign:'center'}}>— Tap a question to get started —</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {SUGGESTED.slice(0,6).map((q,i)=>(
+                    <button key={i} onClick={()=>send(q)} style={{background:'#e8dfc8',border:'1px solid #b8a060',color:'#3a2e10',fontSize:11,padding:'6px 12px',borderRadius:16,cursor:'pointer',fontFamily:'inherit',fontWeight:600,textAlign:'left'}}>
+                      {q.length>44?q.slice(0,44)+'…':q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{padding:'10px 14px',borderTop:'1px solid rgba(201,168,76,0.2)',background:'rgba(13,27,42,0.98)',display:'flex',gap:8,alignItems:'flex-end',flexShrink:0}}>
+            <textarea
+              value={input}
+              onChange={e=>{setInput(e.target.value);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,90)+'px';}}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(input);}}}
+              placeholder="Ask Maxwell anything about the buyer or this family sale..."
+              rows={1}
+              style={{flex:1,background:'rgba(255,255,255,0.07)',border:'1px solid rgba(201,168,76,0.25)',borderRadius:10,padding:'10px 14px',color:cream,fontFamily:'inherit',fontSize:13,resize:'none',outline:'none',lineHeight:1.5,minHeight:42,maxHeight:90}}
+            />
+            <button onClick={()=>send(input)} disabled={loading||!input.trim()} style={{width:42,height:42,borderRadius:10,background:'linear-gradient(135deg,#c9a84c,#8a6520)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,opacity:loading||!input.trim()?0.35:1}}>
+              <svg viewBox="0 0 24 24" width={16} height={16} fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+          </div>
+        </>
+      )}
+
+      <div style={{fontSize:9,color:'rgba(245,240,232,0.2)',textAlign:'center',padding:'3px 14px 5px',background:'rgba(13,27,42,0.98)',flexShrink:0}}>
+        Educational guidance only — not official financial, legal, or tax advice.
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
